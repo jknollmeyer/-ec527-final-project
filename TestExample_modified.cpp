@@ -9,7 +9,15 @@
 #include <iostream>
 #include <fstream>
 
-#include <random>//ADDED BY DAVID
+//http://www.boost.org/doc/libs/1_55_0/libs/random/example/random_demo.cpp
+#include <boost/random/uniform_real.hpp>//ADDED BY DAVID
+#include <boost/random/variate_generator.hpp>//ADDED BY DAVID
+#include <boost/random/uniform_int.hpp>//ADDED BY DAVID
+#include <boost/random/linear_congruential.hpp>//ADDED BY DAVID
+#include <boost/lexical_cast.hpp>//ADDED BY DAVID
+#include <string>//ADDED BY DAVID
+#include <sstream>//ADDED BY DAVID
+#include <algorithm>//ADDED BY DAVID
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -20,8 +28,8 @@
 
 //Following Erdos-Renyi random graph model -- essentially just "flip a coin" with probability p == edgeDensity for each edge in the graph to see if it's in the graph
 //If I want a distribution, check out this: http://strategic.mit.edu/docs/matlab_networks/random_graph.m from http://strategic.mit.edu/downloads.php?page=matlab_networks
-#define numNodes 10			//ADDED BY DAVID
-#define edgeDensity 0.9		//ADDED BY DAVID
+#define numNodes 13			//ADDED BY DAVID
+#define edgeDensity 0.6		//ADDED BY DAVID
 #define maxEdgeWeight 20	//ADDED BY DAVID
 //Valuable for later: http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/VertexListGraph.html
 //	http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/graph_concepts.html
@@ -29,6 +37,7 @@
 
 
 using namespace boost;
+typedef boost::minstd_rand base_generator_type;//ADDED BY DAVID
 
 int
 main(int, char *[])
@@ -43,15 +52,15 @@ main(int, char *[])
   std::cout << "Edge Density: " << edgeDensity << std::endl;//ADDED BY DAVID
   std::cout << "Range of Edge Weights: [1, " << maxEdgeWeight << "]" << std::endl;//ADDED BY DAVID
   
-  std::default_random_engine generator;//ADDED BY DAVID
-  std::uniform_real_distribution<double> distribution(0.0, 1.0);//ADDED BY DAVID
-  int numTotalEdges = (numNodes * (numNodes - 1)) / 2;//ADDED BY DAVID
   
-  std::default_random_engine generator;//ADDED BY DAVID
-  //http://www.cplusplus.com/reference/random/uniform_real_distribution/
-  std::uniform_real_distribution<double> probability(0.0, 1.0);//ADDED BY DAVID
-  //http://www.cplusplus.com/reference/random/uniform_int_distribution/
-  std::uniform_int_distribution<int> weightRange(1, maxEdgeWeight);//cannot have a lower bound of 0 on an edge weight//ADDED BY DAVID
+  base_generator_type generator(42);//ADDED BY DAVID
+  boost::uniform_real<> uni_dist(0,1);//ADDED BY DAVID
+  boost::variate_generator<base_generator_type&, boost::uniform_real<> > probability(generator, uni_dist);//ADDED BY DAVID
+  base_generator_type generatorInt(43);//ADDED BY DAVID
+  boost::uniform_int<> dist(1,maxEdgeWeight);//cannot have a lower bound of 0 on an edge weight//ADDED BY DAVID
+  boost::variate_generator<base_generator_type&, boost::uniform_int<> > weightRange(generatorInt, dist);//ADDED BY DAVID
+  
+  int numTotalEdges = (numNodes * (numNodes - 1)) / 2;//ADDED BY DAVID
 
   /*//COMMENT-BLOCK ADDED BY DAVID
   const int num_nodes = 5;
@@ -68,14 +77,25 @@ main(int, char *[])
   std::vector<int> weights;//ADDED BY DAVID
   for (int uNode = 0; uNode < (numNodes-1); uNode++) {//ADDED BY DAVID
 	for (int vNode = uNode+1; vNode < numNodes; vNode++) {//ADDED BY DAVID
-	  if (probability(generator) <= edgeDensity) {//ADDED BY DAVID
+	  if (probability() <= edgeDensity) {//ADDED BY DAVID
 		edgesVec.push_back(std::make_pair(uNode, vNode));//ADDED BY DAVID
-		weights.push_back(weightRange(generator));//ADDED BY DAVID
+		weights.push_back(weightRange());//ADDED BY DAVID
 	  }//ADDED BY DAVID
 	}//ADDED BY DAVID
   }//ADDED BY DAVID
   std::cout << "Number of edges created: " << edgesVec.size() << std::endl;//ADDED BY DAVID
-  std::cout << "Percentage of all possible edges: " << ((float) edgesVec.size())/((float) numTotalEdges) << std::endl;//ADDED BY DAVID
+  std::cout << "Percentage of all possible edges: " << ((float) edgesVec.size())/((float) numTotalEdges) << std::endl << std::endl;//ADDED BY DAVID
+  
+  std::stringstream weightsResult;//ADDED BY DAVID
+  std::copy(weights.begin(), weights.end(), std::ostream_iterator<int>(weightsResult, " "));//ADDED BY DAVID
+  std::cout << "Edge-weights: " << weightsResult.str().c_str() << std::endl;//ADDED BY DAVID
+  
+  std::cout << "Corresponding edges: ";//ADDED BY DAVID
+  for (int pp = 0; pp < edgesVec.size(); pp++) {//ADDED BY DAVID
+	  std::cout << "<" << edgesVec[pp].first << ", " << edgesVec[pp].second << "> ";//ADDED BY DAVID
+  }//ADDED BY DAVID
+  std::cout << std::endl << std::endl;//ADDED BY DAVID
+  
   
   //BEGIN IF-CLAUSE
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
@@ -88,7 +108,7 @@ main(int, char *[])
     weightmap[e] = weights[j];
   }
   //*/
-  
+  //std::cout << "(defined(BOOST_MSVC) && BOOST_MSVC <= 1300) is TRUE" << std::endl;//ADDED BY DAVID
   graph_t g(numNodes);//ADDED BY DAVID
   property_map<graph_t, edge_weight_t>::type weightmap = get(edge_weight, g);//ADDED BY DAVID
 	
@@ -110,10 +130,12 @@ main(int, char *[])
   property_map<graph_t, edge_weight_t>::type weightmap = get(edge_weight, g);
   //*/
   
+  //std::cout << "(defined(BOOST_MSVC) && BOOST_MSVC <= 1300) is FALSE" << std::endl;//ADDED BY DAVID
   //http://stackoverflow.com/questions/2923272/how-to-convert-vector-to-array-in-c
   int *weightsArr = &weights[0];//ADDED BY DAVID
   Edge *edge_array = &edgesVec[0];//ADDED BY DAVID
-  int num_arcs = sizeof(edge_array) / sizeof(Edge);//ADDED BY DAVID
+  //int num_arcs = sizeof(edge_array) / sizeof(Edge);//ADDED BY DAVID//Didn't use this because it was always 1//Which now that I see it, makes sense as there's no other implicit way to get the size of an array like with a vector
+  int num_arcs = edgesVec.size();//ADDED BY DAVID
   graph_t g(edge_array, edge_array + num_arcs, weightsArr, numNodes);//ADDED BY DAVID
   property_map<graph_t, edge_weight_t>::type weightmap = get(edge_weight, g);//ADDED BY DAVID
 #endif
@@ -141,10 +163,10 @@ main(int, char *[])
   for (tie(vi, vend) = vertices(g); vi != vend; ++vi) {
     //std::cout << "distance(" << name[*vi] << ") = " << d[*vi] << ", ";//COMMENT-OUT ADDED BY DAVID
     //std::cout << "parent(" << name[*vi] << ") = " << name[p[*vi]] << std:://COMMENT-OUT ADDED BY DAVID
-	//std::cout << "distance(" << itoa(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
-	//std::cout << "parent(" << itoa(*vi) << ") = " << itoa(p[*vi]) << std:://ADDED BY DAVID
-	std::cout << "distance(Node" << itoa(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
-	std::cout << "parent(Node" << itoa(*vi) << ") = Node" << itoa(p[*vi]) << std:://ADDED BY DAVID
+	//std::cout << "distance(" << boost::lexical_cast<int>(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
+	//std::cout << "parent(" << boost::lexical_cast<int>(*vi) << ") = " << boost::lexical_cast<int>(p[*vi]) << std:://ADDED BY DAVID
+	std::cout << "distance(Node" << boost::lexical_cast<int>(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
+	std::cout << "parent(Node" << boost::lexical_cast<int>(*vi) << ") = Node" << boost::lexical_cast<int>(p[*vi]) << std:://ADDED BY DAVID
       endl;
   }
   std::cout << std::endl;
@@ -163,8 +185,8 @@ main(int, char *[])
     graph_traits < graph_t >::vertex_descriptor
       u = source(e, g), v = target(e, g);
     //dot_file << name[u] << " -> " << name[v]//COMMENT-OUT ADDED BY DAVID
-	//dot_file << itoa(u) << " -> " << itoa(v)//ADDED BY DAVID
-	dot_file << "Node" << itoa(u) << " -> Node" << itoa(v)//ADDED BY DAVID
+	//dot_file << boost::lexical_cast<int>(u) << " -> " << boost::lexical_cast<int>(v)//ADDED BY DAVID
+	dot_file << "Node" << boost::lexical_cast<int>(u) << " -> Node" << boost::lexical_cast<int>(v)//ADDED BY DAVID
       << "[label=\"" << get(weightmap, e) << "\"";
     if (p[v] == u)
       dot_file << ", color=\"black\"";
