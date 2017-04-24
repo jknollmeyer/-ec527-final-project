@@ -1,4 +1,3 @@
-
 //
 //=======================================================================
 // Copyright 1997, 1998, 1999, 2000 University of Notre Dame.
@@ -15,6 +14,10 @@
 /*
   Breadth First Search Algorithm (Cormen, Leiserson, and Rivest p. 470)
 */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
 #include <boost/config.hpp>
 #include <vector>
 #include <boost/pending/queue.hpp>
@@ -29,6 +32,10 @@
 #ifdef BOOST_GRAPH_USE_MPI
 #include <boost/graph/distributed/concepts.hpp>
 #endif // BOOST_GRAPH_USE_MPI
+
+
+#define NUM_THREADS 2
+
 
 namespace boost {
 
@@ -52,6 +59,69 @@ namespace boost {
     typename graph_traits<Graph>::edge_descriptor e;
   };
 
+    template <class IncidenceGraph,class BFSVisitor,class ColorMap>
+    struct thread_data{
+    typedef graph_traits<IncidenceGraph> GTraits;
+    //typedef ReadWritePropertyMapConcept<ColorMap, Vertex> ColorMap;
+            typedef typename property_traits<ColorMap>::value_type ColorValue;
+   typedef color_traits<ColorValue> Color;
+    //typedef BFSVisitorConcept<BFSVisitor, IncidenceGraph> BFSvisitor;
+    //BFSVisitorConcept<BFSVisitor, IncidenceGraph> BFSvisitor;
+/*    
+    typedef typename GTraits::vertex_descriptor Vertex;
+    typedef typename GTraits::edge_descriptor Edge;
+
+    typename GTraits::out_edge_iterator ei, ei_end;
+      typename GTraits::out_edge_iterator ei;*/
+      int thread_id;
+      IncidenceGraph g;
+      typename GTraits::out_edge_iterator * neighbors;
+      int num_nodes;
+      int enqueue;
+      //Buffer Q;
+      //BFSVisitor vis;
+      ColorMap color;
+    };
+  
+  template <class IncidenceGraph, class BFSVisitor,class ColorMap>
+  void *work(void *threadarg)
+  {
+
+        printf(" Hello World! from child thread %lu\n",
+    pthread_self());
+
+     struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> * my_data = (struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> *) threadarg;
+     typedef graph_traits<IncidenceGraph> GTraits;
+     typedef typename GTraits::vertex_descriptor Vertex;
+      typedef typename property_traits<ColorMap>::value_type ColorValue;
+   typedef color_traits<ColorValue> Color;
+    typedef typename GTraits::out_edge_iterator ei;
+
+    //sleep(3);
+/*
+      for (int i =0; i < my_data.num_nodes; i++) {
+          ei = my_data.neighbors[i];
+          Vertex v = target(*ei, my_data.g);            
+          my_data.vis.examine_edge(*ei, my_data.g);
+          ColorValue v_color = get(my_data.color, v);
+          if (v_color == Color::white()) {      
+            my_data.vis.tree_edge(*ei, my_data.g);
+            put(my_data.color, v, Color::gray());       
+            my_data.vis.discover_vertex(v, my_data.g);
+            
+            //my_data.Q.push(v);
+          } else {                              
+            my_data.vis.non_tree_edge(*ei, my_data.g);
+            if (v_color == Color::gray())       
+              my_data.vis.gray_target(*ei, my_data.g);
+            else                                
+              my_data.vis.black_target(*ei, my_data.g);
+          }
+        } // end for
+*/
+    pthread_exit(NULL);
+  }
+
 
   template <class IncidenceGraph, class Buffer, class BFSVisitor,
             class ColorMap>
@@ -70,22 +140,95 @@ namespace boost {
     typedef color_traits<ColorValue> Color;
     typename GTraits::out_edge_iterator ei, ei_end;
 
-    put(color, s, Color::gray());             vis.discover_vertex(s, g);
+    int t,rc;
+    pthread_t threads[NUM_THREADS];
+    struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> thread_data_array[NUM_THREADS];
+    typename GTraits::out_edge_iterator * temp_array;
+
+    put(color, s, Color::gray());             
+    vis.discover_vertex(s, g);
     Q.push(s);
     while (! Q.empty()) {
-      Vertex u = Q.top(); Q.pop();            vis.examine_vertex(u, g);
-      for (tie(ei, ei_end) = out_edges(u, g); ei != ei_end; ++ei) {
-        Vertex v = target(*ei, g);            vis.examine_edge(*ei, g);
-        ColorValue v_color = get(color, v);
-        if (v_color == Color::white()) {      vis.tree_edge(*ei, g);
-          put(color, v, Color::gray());       vis.discover_vertex(v, g);
-          Q.push(v);
-        } else {                              vis.non_tree_edge(*ei, g);
-          if (v_color == Color::gray())       vis.gray_target(*ei, g);
-          else                                vis.black_target(*ei, g);
+      Vertex u = Q.top(); 
+      Q.pop();            
+      vis.examine_vertex(u, g);
+      int num_nodes = out_degree(u,g);
+      if(num_nodes >= NUM_THREADS){
+        int nodes_per_thread = num_nodes/NUM_THREADS; 
+        int nodes_last_thread = num_nodes - nodes_per_thread*(NUM_THREADS-1);
+        printf("nodes per thread: %d\n",nodes_per_thread);
+        printf("nodes lasst thread: %d\n",nodes_last_thread);
+        tie(ei, ei_end) = out_edges(u, g);
+        temp_array = (typename GTraits::out_edge_iterator *)malloc(sizeof(typename GTraits::out_edge_iterator)*nodes_per_thread);
+        for ( t= 0; t < NUM_THREADS-1; t++) {
+          for(int i =0;i<nodes_per_thread;i++){
+            temp_array[i] = ei;
+            ei++;
+            printf("after filling temp array\n");
+          }
+          thread_data_array[t].thread_id = t;
+          thread_data_array[t].g = g;
+          thread_data_array[t].num_nodes = nodes_per_thread;
+          thread_data_array[t].neighbors = temp_array;
+          //thread_data_array[t].vis = vis;
+          thread_data_array[t].color = color;
+          thread_data_array[t].enqueue = 0;
+          rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap>,
+            (void*) &thread_data_array[t]);
+          if (rc) {
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
+            exit(-1);
+          }
         }
-      } // end for
-      put(color, u, Color::black());          vis.finish_vertex(u, g);
+        temp_array = (typename GTraits::out_edge_iterator *)malloc(sizeof(typename GTraits::out_edge_iterator)*nodes_per_thread);
+        for(int i =0;i<nodes_last_thread;i++){
+          temp_array[i] = ei;
+          ei++;
+        }
+        thread_data_array[t].thread_id = t;
+        thread_data_array[t].g = g;
+        thread_data_array[t].num_nodes = nodes_last_thread;
+        thread_data_array[t].neighbors = temp_array;
+        thread_data_array[t].enqueue = 0;
+        //thread_data_array[t].vis = vis;
+        thread_data_array[t].color = color;
+        rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap>,
+          (void*) &thread_data_array[t]);
+        if (rc) {
+          printf("ERROR; return code from pthread_create() is %d\n", rc);
+          exit(-1);
+        }
+        for (t = 0; t < NUM_THREADS; t++) {
+          if (pthread_join(threads[t],NULL)){
+            printf("\n ERROR on join\n");
+            exit(19);
+          }
+        }
+        printf("\n main() after creating the thread.  My id is %lu\n",
+          pthread_self());
+      }
+      else{
+        printf("Only one neighbor\n");
+        for (tie(ei, ei_end) = out_edges(u, g); ei != ei_end; ++ei) {
+          Vertex v = target(*ei, g);            
+          vis.examine_edge(*ei, g);
+          ColorValue v_color = get(color, v);
+          if (v_color == Color::white()) {      
+            vis.tree_edge(*ei, g);
+            put(color, v, Color::gray());       
+            vis.discover_vertex(v, g);
+            Q.push(v);
+          } else {                              
+            vis.non_tree_edge(*ei, g);
+            if (v_color == Color::gray())       
+              vis.gray_target(*ei, g);
+            else                                
+              vis.black_target(*ei, g);
+          }
+        } // end for
+        put(color, u, Color::black());          
+        vis.finish_vertex(u, g);
+      }
     } // end while
   } // breadth_first_visit
 
