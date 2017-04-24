@@ -59,7 +59,7 @@ namespace boost {
     typename graph_traits<Graph>::edge_descriptor e;
   };
 
-    template <class IncidenceGraph,class BFSVisitor,class ColorMap>
+    template <class IncidenceGraph,class BFSVisitor,class ColorMap, class Buffer>
     struct thread_data{
     typedef graph_traits<IncidenceGraph> GTraits;
     //typedef ReadWritePropertyMapConcept<ColorMap, Vertex> ColorMap;
@@ -70,7 +70,6 @@ namespace boost {
 /*    
     typedef typename GTraits::vertex_descriptor Vertex;
     typedef typename GTraits::edge_descriptor Edge;
-
     typename GTraits::out_edge_iterator ei, ei_end;
       typename GTraits::out_edge_iterator ei;*/
       int thread_id;
@@ -78,19 +77,19 @@ namespace boost {
       typename GTraits::out_edge_iterator * neighbors;
       int num_nodes;
       int enqueue;
-      //Buffer Q;
-      //BFSVisitor vis;
+      Buffer * Q();
+      BFSVisitor * vis();
       ColorMap color;
     };
   
-  template <class IncidenceGraph, class BFSVisitor,class ColorMap>
+  template <class IncidenceGraph, class BFSVisitor,class ColorMap, class Buffer>
   void *work(void *threadarg)
   {
 
         printf(" Hello World! from child thread %lu\n",
     pthread_self());
 
-     struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> * my_data = (struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> *) threadarg;
+     struct thread_data<IncidenceGraph,BFSVisitor,ColorMap, Buffer> * my_data = (struct thread_data<IncidenceGraph,BFSVisitor,ColorMap,Buffer> *) threadarg;
      typedef graph_traits<IncidenceGraph> GTraits;
      typedef typename GTraits::vertex_descriptor Vertex;
       typedef typename property_traits<ColorMap>::value_type ColorValue;
@@ -142,7 +141,7 @@ namespace boost {
 
     int t,rc;
     pthread_t threads[NUM_THREADS];
-    struct thread_data<IncidenceGraph,BFSVisitor,ColorMap> thread_data_array[NUM_THREADS];
+    struct thread_data<IncidenceGraph,BFSVisitor,ColorMap,Buffer> thread_data_array[NUM_THREADS];
     typename GTraits::out_edge_iterator * temp_array;
 
     put(color, s, Color::gray());             
@@ -170,10 +169,11 @@ namespace boost {
           thread_data_array[t].g = g;
           thread_data_array[t].num_nodes = nodes_per_thread;
           thread_data_array[t].neighbors = temp_array;
-          //thread_data_array[t].vis = vis;
+          //thread_data_array[t].Q = &Q;
+          //thread_data_array[t].vis = &vis;
           thread_data_array[t].color = color;
           thread_data_array[t].enqueue = 0;
-          rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap>,
+          rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap,Buffer>,
             (void*) &thread_data_array[t]);
           if (rc) {
             printf("ERROR; return code from pthread_create() is %d\n", rc);
@@ -189,10 +189,10 @@ namespace boost {
         thread_data_array[t].g = g;
         thread_data_array[t].num_nodes = nodes_last_thread;
         thread_data_array[t].neighbors = temp_array;
-        thread_data_array[t].enqueue = 0;
-        //thread_data_array[t].vis = vis;
+        //thread_data_array[t].vis = &vis;
+        //thread_data_array[t].Q = &Q;
         thread_data_array[t].color = color;
-        rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap>,
+        rc = pthread_create(&threads[t], NULL, work<IncidenceGraph, BFSVisitor,ColorMap,Buffer>,
           (void*) &thread_data_array[t]);
         if (rc) {
           printf("ERROR; return code from pthread_create() is %d\n", rc);
