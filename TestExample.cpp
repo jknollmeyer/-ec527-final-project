@@ -1,5 +1,5 @@
 //=======================================================================
-// Copyright 2001 Jeremy G. Siek, Andrew Lumsdaine, Lie-Quan Lee,
+// Copyright 2001 Jeremy G. Siek, Andrew Lumsdaine, Lie-Quan Lee, 
 //
 // Distributed under the Boost Software License, Version 1.0. (See
 // accompanying file LICENSE_1_0.txt or copy at
@@ -53,8 +53,8 @@ main(int, char *[])
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
   // VC++ has trouble with the named parameters mechanism
   property_map<graph_t, vertex_index_t>::type indexmap = get(vertex_index, g);
-  dijkstra_shortest_paths(g, s, &p[0], &d[0], weightmap, indexmap,
-                          std::less<int>(), closed_plus<int>(),
+  dijkstra_shortest_paths(g, s, &p[0], &d[0], weightmap, indexmap, 
+                          std::less<int>(), closed_plus<int>(), 
                           (std::numeric_limits<int>::max)(), 0,
                           default_dijkstra_visitor());
 #else

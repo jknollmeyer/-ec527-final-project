@@ -8,6 +8,8 @@
 #include <boost/config.hpp>
 #include <iostream>
 #include <fstream>
+#include <time.h>
+
 
 //http://www.boost.org/doc/libs/1_55_0/libs/random/example/random_demo.cpp
 #include <boost/random/uniform_real.hpp>//ADDED BY DAVID
@@ -26,10 +28,13 @@
 #include "dijkstra_speedup.cpp"
 
 
+#define GIG 1000000000
+#define CPG 2.9           // Cycles per GHz -- Adjust to your computer
+
 //Following Erdos-Renyi random graph model -- essentially just "flip a coin" with probability p == edgeDensity for each edge in the graph to see if it's in the graph
 //If I want a distribution, check out this: http://strategic.mit.edu/docs/matlab_networks/random_graph.m from http://strategic.mit.edu/downloads.php?page=matlab_networks
-#define numNodes 13			//ADDED BY DAVID
-#define edgeDensity 0.6		//ADDED BY DAVID
+#define numNodes 20000			//ADDED BY DAVID
+#define edgeDensity 0.3		//ADDED BY DAVID
 #define maxEdgeWeight 20	//ADDED BY DAVID
 //Valuable for later: http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/VertexListGraph.html
 //	http://www.boost.org/doc/libs/1_55_0/libs/graph/doc/graph_concepts.html
@@ -42,15 +47,22 @@ typedef boost::minstd_rand base_generator_type;//ADDED BY DAVID
 int
 main(int, char *[])
 {
+
+    struct timespec diff(struct timespec start, struct timespec end);
+  struct timespec time1, time2;
+    struct timespec time_stamp;
+  int clock_gettime(clockid_t clk_id, struct timespec *tp);
+    long long int time_sec, time_ns;
+
   typedef adjacency_list < listS, vecS, directedS,
     no_property, property < edge_weight_t, int > > graph_t;
   typedef graph_traits < graph_t >::vertex_descriptor vertex_descriptor;
   typedef graph_traits < graph_t >::edge_descriptor edge_descriptor;
   typedef std::pair<int, int> Edge;
-  
-  std::cout << "Number of Nodes: " << numNodes << std::endl;//ADDED BY DAVID
-  std::cout << "Edge Density: " << edgeDensity << std::endl;//ADDED BY DAVID
-  std::cout << "Range of Edge Weights: [1, " << maxEdgeWeight << "]" << std::endl;//ADDED BY DAVID
+    std::cout <<"Nodes,   Edges,   nanoseconds\n";
+  std::cout << numNodes;//ADDED BY DAVID
+  //std::cout << "Edge Density: " << edgeDensity << std::endl;//ADDED BY DAVID
+  //std::cout << "Range of Edge Weights: [1, " << maxEdgeWeight << "]" << std::endl;//ADDED BY DAVID
   
   
   base_generator_type generator(42);//ADDED BY DAVID
@@ -83,18 +95,19 @@ main(int, char *[])
 	  }//ADDED BY DAVID
 	}//ADDED BY DAVID
   }//ADDED BY DAVID
-  std::cout << "Number of edges created: " << edgesVec.size() << std::endl;//ADDED BY DAVID
-  std::cout << "Percentage of all possible edges: " << ((float) edgesVec.size())/((float) numTotalEdges) << std::endl << std::endl;//ADDED BY DAVID
+
+  std::cout << ", " << edgesVec.size();//ADDED BY DAVID
+  //std::cout << "Percentage of all possible edges: " << ((float) edgesVec.size())/((float) numTotalEdges) << std::endl << std::endl;//ADDED BY DAVID
   
   std::stringstream weightsResult;//ADDED BY DAVID
   std::copy(weights.begin(), weights.end(), std::ostream_iterator<int>(weightsResult, " "));//ADDED BY DAVID
-  std::cout << "Edge-weights: " << weightsResult.str().c_str() << std::endl;//ADDED BY DAVID
+  //std::cout << "Edge-weights: " << weightsResult.str().c_str() << std::endl;//ADDED BY DAVID
   
-  std::cout << "Corresponding edges: ";//ADDED BY DAVID
-  for (int pp = 0; pp < edgesVec.size(); pp++) {//ADDED BY DAVID
-	  std::cout << "<" << edgesVec[pp].first << ", " << edgesVec[pp].second << "> ";//ADDED BY DAVID
-  }//ADDED BY DAVID
-  std::cout << std::endl << std::endl;//ADDED BY DAVID
+  //std::cout << "Corresponding edges: ";//ADDED BY DAVID
+  //for (int pp = 0; pp < edgesVec.size(); pp++) {//ADDED BY DAVID
+//	  std::cout << "<" << edgesVec[pp].first << ", " << edgesVec[pp].second << "> ";//ADDED BY DAVID
+ // }//ADDED BY DAVID
+  //std::cout << std::endl << std::endl;//ADDED BY DAVID
   
   
   //BEGIN IF-CLAUSE
@@ -145,7 +158,7 @@ main(int, char *[])
   std::vector<int> d(num_vertices(g));
   //vertex_descriptor s = vertex(A, g);//COMMENT-OUT ADDED BY DAVID
   vertex_descriptor s = vertex(0, g);//ADDED BY DAVID
-
+clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
   //BEGIN IF-CLAUSE
 #if defined(BOOST_MSVC) && BOOST_MSVC <= 1300
   // VC++ has trouble with the named parameters mechanism
@@ -157,19 +170,24 @@ main(int, char *[])
 #else
   dijkstra_shortest_paths(g, s, predecessor_map(&p[0]).distance_map(&d[0]));
 #endif
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
+    time_stamp = diff(time1,time2);
 
-  std::cout << "distances and parents:" << std::endl;
+      std::cout << ", ";
+      std::cout << (long int)((double)(CPG)*(double)(GIG * time_stamp.tv_sec + time_stamp.tv_nsec));
+      std::cout << '\n';
+  //std::cout << "distances and parents:" << std::endl;
   graph_traits < graph_t >::vertex_iterator vi, vend;
-  for (tie(vi, vend) = vertices(g); vi != vend; ++vi) {
+  //for (tie(vi, vend) = vertices(g); vi != vend; ++vi) {
     //std::cout << "distance(" << name[*vi] << ") = " << d[*vi] << ", ";//COMMENT-OUT ADDED BY DAVID
     //std::cout << "parent(" << name[*vi] << ") = " << name[p[*vi]] << std:://COMMENT-OUT ADDED BY DAVID
 	//std::cout << "distance(" << boost::lexical_cast<int>(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
 	//std::cout << "parent(" << boost::lexical_cast<int>(*vi) << ") = " << boost::lexical_cast<int>(p[*vi]) << std:://ADDED BY DAVID
-	std::cout << "distance(Node" << boost::lexical_cast<int>(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
-	std::cout << "parent(Node" << boost::lexical_cast<int>(*vi) << ") = Node" << boost::lexical_cast<int>(p[*vi]) << std:://ADDED BY DAVID
-      endl;
-  }
-  std::cout << std::endl;
+	//std::cout << "distance(Node" << boost::lexical_cast<int>(*vi) << ") = " << d[*vi] << ", ";//ADDED BY DAVID
+	//std::cout << "parent(Node" << boost::lexical_cast<int>(*vi) << ") = Node" << boost::lexical_cast<int>(p[*vi]) << std:://ADDED BY DAVID
+      //endl;
+  //}
+  //std::cout << std::endl;
 
   std::ofstream dot_file("figs/dijkstra-eg.dot");
 
@@ -196,4 +214,17 @@ main(int, char *[])
   }
   dot_file << "}";
   return EXIT_SUCCESS;
+}
+
+struct timespec diff(struct timespec start, struct timespec end)
+{
+  struct timespec temp;
+  if ((end.tv_nsec-start.tv_nsec)<0) {
+    temp.tv_sec = end.tv_sec-start.tv_sec-1;
+    temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
+  } else {
+    temp.tv_sec = end.tv_sec-start.tv_sec;
+    temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+  }
+  return temp;
 }
