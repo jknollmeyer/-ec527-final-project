@@ -3,7 +3,7 @@
 #include <vector>
 #include <climits>
 #include <time.h>
-#include "dijkstra_pthread.cpp"
+#include "dijkstra_lib.cpp"
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/random/uniform_int.hpp>
@@ -18,7 +18,7 @@ typedef boost::minstd_rand base_generator_type;
 #define GIG 1000000000
 #define CPG 2.9           // Cycles per GHz -- Adjust to your computer
 
-#define numNodes 6          
+#define numNodes 200       
 #define edgeDensity 0.5     
 #define maxEdgeWeight 20    
 
@@ -45,12 +45,12 @@ int main() //Driver Function for Dijkstra SSSP
     vector<pair<int,int> > a[sz]; //Adjacency list
     int edges = 0;
     for (int uNode = 1; uNode < numNodes; uNode++) {
-        //cout << "from Vertex " << uNode << ":" << endl;
+        cout << "from Vertex " << uNode << ":" << endl;
         for (int vNode = uNode+1; vNode < numNodes+1; vNode++) {
             if (probability() <= edgeDensity) {
                 edges++;
                 int weight = weightRange();
-                //cout << "\tVertex " << vNode << ", Weight: " << weight << endl;
+                cout << "\tVertex " << vNode << ", Weight: " << weight << endl;
                 a[uNode].push_back(make_pair(vNode,weight));
                 a[vNode].push_back(make_pair(uNode,weight));
             }
@@ -62,13 +62,13 @@ int main() //Driver Function for Dijkstra SSSP
     Dijkstra(source,numNodes,a,dis);//SSSP from source (Also passing number of vertices as parameter)
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     //cout<<"Source is: "<<source<<". The shortest distance to every other vertex from here is: \n";
-    /*
+    
     for(int i=1;i<=numNodes;i++)//Printing final shortest distances from source
     {
         cout<<"Vertex: "<<i<<" , Distance: ";
         dis[i]!=INF? cout<<dis[i]<<"\n" : cout<<"-1\n";
     }
-    */
+    
     time_stamp = diff(time1,time2);
     std::cout << numNodes << ", " << edges << ", ";
     std::cout << (long int)((double)(CPG)*(double)(GIG * time_stamp.tv_sec + time_stamp.tv_nsec));
