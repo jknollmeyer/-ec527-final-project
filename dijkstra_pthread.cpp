@@ -9,7 +9,7 @@
 using namespace std;
 #define INF INT_MAX //Infinity
  
-const int sz=10001; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
+const int sz=1000; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
 #define NUM_THREADS 2
 
 
@@ -38,7 +38,7 @@ struct thread_data{
 void *work(void *threadarg)
   {
 
-    printf(" Hello World! from child thread %lu\n",pthread_self());
+    //printf(" Hello World! from child thread %lu\n",pthread_self());
     struct thread_data * my_data = (struct thread_data *) threadarg;
     int numNeighbor = my_data->numNeighbor;
     int firstNeighbor = my_data->firstNeighbor;
@@ -49,7 +49,7 @@ void *work(void *threadarg)
     int * dis = my_data->dis;
     pair <int,int> tempPair;
     for (int i =firstNeighbor; i < numNeighbor+firstNeighbor; i++) {
-        printf("child thread %lu looking at node %d\n",pthread_self(),numNeighbor);
+        //printf("child thread %lu looking at node %d\n",pthread_self(),numNeighbor);
         if(!vis[neighbors[i].first] && neighbors[i].second+cw<dis[neighbors[i].first]) //If this node is not visited and the current parent node distance+distance from there to this node is shorted than the initial distace set to this node, update it
             tempPair = make_pair(neighbors[i].first,(dis[neighbors[i].first]=neighbors[i].second+cw));
             while (pthread_mutex_trylock(&mutexPQ));  // wait until released
@@ -84,11 +84,11 @@ int * Dijkstra(int source, int n, vector<pair<int,int> > a[],int dis[]) //Algori
         vis[cv]=true;
         int totalNeighbor = a[cv].size();
         if(totalNeighbor > NUM_THREADS){
-            printf("total neighbors: %d\n",totalNeighbor);
+            //printf("total neighbors: %d\n",totalNeighbor);
             int nodes_per_thread = totalNeighbor/(NUM_THREADS+1); 
             int nodes_last_thread = totalNeighbor - nodes_per_thread*(NUM_THREADS);
-            printf("nodes per thread: %d\n",nodes_per_thread);
-            printf("nodes lasst thread: %d\n",nodes_last_thread);
+            //printf("nodes per thread: %d\n",nodes_per_thread);
+            //printf("nodes lasst thread: %d\n",nodes_last_thread);
             
             if (pthread_mutex_lock(&mutexPQ)) printf("\nERROR on lock\n");
             int t;
@@ -106,24 +106,28 @@ int * Dijkstra(int source, int n, vector<pair<int,int> > a[],int dis[]) //Algori
                 }
             }
             if (pthread_mutex_unlock(&mutexPQ)) printf("\nERROR on unlock\n");  // unlock thread
-
+            //printf("Before parent loop\n");
             int firstNeighbor = t*nodes_per_thread;
             int numNeighbor = nodes_last_thread;
+            pair <int,int> tempPair;
             for (int i =firstNeighbor; i < numNeighbor+firstNeighbor; i++) {
-                printf("parent thread %lu looking at node %d\n",pthread_self(),numNeighbor);
+                //printf("parent thread %lu looking at node %d\n",pthread_self(),numNeighbor);
                 if(!vis[a[cv][i].first] && a[cv][i].second+cw<dis[a[cv][i].first]) //If this node is not visited and the current parent node distance+distance from there to this node is shorted than the initial distace set to this node, update it
-                    pq.push(make_pair(a[cv][i].first,(dis[a[cv][i].first]=a[cv][i].second+cw))); //Set the new distance and add to priority queue
+                    tempPair = make_pair(a[cv][i].first,(dis[a[cv][i].first]=a[cv][i].second+cw));
+                    while (pthread_mutex_trylock(&mutexPQ));  // wait until released
+                    pq.push(tempPair); //Set the new distance and add to priority queue
+                    if (pthread_mutex_unlock(&mutexPQ)) printf("\nERROR on unlock\n");  // unlock thread
             }
-
+            //printf("After parent loop\n");
             for (t = 0; t < NUM_THREADS; t++) {
                 if (pthread_join(threads[t],NULL)){
                     printf("\n ERROR on join\n");
                 }
             }
-            printf("\n main() after creating the thread.  My id is %lu\n",pthread_self());
+            //printf("\n main() after creating the thread.  My id is %lu\n",pthread_self());
         }
         else{
-            printf("Not enough neighbors\n");
+            //printf("Not enough neighbors\n");
             for(int i=0;i<a[cv].size();i++) //Iterating through all adjacent vertices
                 if(!vis[a[cv][i].first] && a[cv][i].second+cw<dis[a[cv][i].first]) //If this node is not visited and the current parent node distance+distance from there to this node is shorted than the initial distace set to this node, update it
                     pq.push(make_pair(a[cv][i].first,(dis[a[cv][i].first]=a[cv][i].second+cw))); //Set the new distance and add to priority queue
