@@ -3,7 +3,7 @@
 #include <vector>
 #include <climits>
 #include <time.h>
-#include "dijkstra_lib.cpp"
+#include "dijkstra_pthread.cpp"
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/random/uniform_int.hpp>
