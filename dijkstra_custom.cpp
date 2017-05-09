@@ -3,7 +3,7 @@
 #include <vector>
 #include <climits>
 #include <time.h>
-#include "dijkstra_pthread_modified.cpp"
+#include "dijkstra_pthread.cpp"
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/random/uniform_int.hpp>
@@ -18,7 +18,7 @@ typedef boost::minstd_rand base_generator_type;
 #define GIG 1000000000
 #define CPG 2.9           // Cycles per GHz -- Adjust to your computer
 
-#define numNodes 10   
+#define numNodes 3000  
 #define edgeDensity 0.5     
 #define maxEdgeWeight 20    
 

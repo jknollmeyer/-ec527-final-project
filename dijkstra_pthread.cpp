@@ -9,8 +9,8 @@
 using namespace std;
 #define INF INT_MAX //Infinity
  
-const int sz=1000; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
-#define NUM_THREADS 2
+const int sz=3001; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
+#define NUM_THREADS 4
 
 
 //Custom Comparator for Determining priority for priority queue (shortest edge comes first)
@@ -69,9 +69,11 @@ int * Dijkstra(int source, int n, vector<pair<int,int> > a[],int dis[]) //Algori
         printf("ERROR\n");
     }
     struct thread_data thread_data_array[NUM_THREADS];
-    bool vis[sz] = {0};
-    for(int i=0;i<sz;i++) //Set initial distances to Infinity
+    bool vis[sz];
+    for(int i=0;i<sz;i++){ //Set initial distances to Infinity
         dis[i]=INF;
+        vis[i] = false;
+    }
     priority_queue<pair<int,int> ,vector<pair<int,int> >, prioritize> pq; //Priority queue to store vertex,weight pairs
     pq.push(make_pair(source,dis[source]=0)); //Pushing the source with distance from itself as 0
     while(!pq.empty())

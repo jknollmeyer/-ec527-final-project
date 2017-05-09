@@ -9,8 +9,8 @@
 using namespace std;
 #define INF INT_MAX //Infinity
  
-const int sz = 100; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
-#define NUM_THREADS 2
+const int sz = 1000; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
+#define NUM_THREADS 4
 
 //Custom Comparator for Determining priority for priority queue (shortest edge comes first)
 class prioritize {
