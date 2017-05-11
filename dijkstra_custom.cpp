@@ -18,7 +18,7 @@ typedef boost::minstd_rand base_generator_type;
 #define GIG 1000000000
 #define CPG 2.9           // Cycles per GHz -- Adjust to your computer
 
-#define numNodes 6          
+#define numNodes 3000  
 #define edgeDensity 0.5     
 #define maxEdgeWeight 20    
 
