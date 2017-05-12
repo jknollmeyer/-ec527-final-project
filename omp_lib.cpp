@@ -5,9 +5,10 @@
 #include <queue>
 #include <vector>
 #include <climits>
+#include <omp.h>
 using namespace std;
 #define INF INT_MAX //Infinity
- 
+#define NUM_THREADS 2
 const int sz=10000; //Maximum possible number of vertices. Preallocating space for DataStructures accordingly
 
 //Custom Comparator for Determining priority for priority queue (shortest edge comes first)
@@ -33,10 +34,12 @@ int * Dijkstra(int source, int n, vector<pair<int,int> > a[],int dis[]) //Algori
         if(vis[cv]) //If the vertex is already visited, no point in exploring adjacent vertices
             continue;
         vis[cv]=true;
-        for(int i=0;i<a[cv].size();i++) //Iterating through all adjacent vertices
-            if(!vis[a[cv][i].first] && a[cv][i].second+cw<dis[a[cv][i].first]) //If this node is not visited and the current parent node distance+distance from there to this node is shorted than the initial distace set to this node, update it
-                pq.push(make_pair(a[cv][i].first,(dis[a[cv][i].first]=a[cv][i].second+cw))); //Set the new distance and add to priority queue
-    }
+        #pragma omp parallel num_threads(NUM_THREADS){
+            #pragma omp for
+                for(int i=0;i<a[cv].size();i++) //Iterating through all adjacent vertices
+                    if(!vis[a[cv][i].first] && a[cv][i].second+cw<dis[a[cv][i].first]) //If this node is not visited and the current parent node distance+distance from there to this node is shorted than the initial distace set to this node, update it
+                        pq.push(make_pair(a[cv][i].first,(dis[a[cv][i].first]=a[cv][i].second+cw))); //Set the new distance and add to priority queue
+        }
     return dis;
 }
  

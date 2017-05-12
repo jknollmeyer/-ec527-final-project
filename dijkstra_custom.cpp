@@ -3,7 +3,7 @@
 #include <vector>
 #include <climits>
 #include <time.h>
-#include "dijkstra_pthread.cpp"
+#include "dijkstra_lib.cpp"
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 #include <boost/random/uniform_int.hpp>
@@ -16,10 +16,10 @@ typedef boost::minstd_rand base_generator_type;
 #define INF INT_MAX //Infinity
 
 #define GIG 1000000000
-#define CPG 2.9           // Cycles per GHz -- Adjust to your computer
+#define CPG 2.9         // Cycles per GHz -- Adjust to your computer
 
-#define numNodes 3000  
-#define edgeDensity 0.5     
+#define numNodes 2000
+#define edgeDensity 0.7    
 #define maxEdgeWeight 20    
 
  
@@ -39,8 +39,8 @@ int main() //Driver Function for Dijkstra SSSP
     boost::uniform_int<> dist(1,maxEdgeWeight);//cannot have a lower bound of 0 on an edge weight
     boost::variate_generator<base_generator_type&, boost::uniform_int<> > weightRange(generatorInt, dist);
   
-    int numTotalEdges = (numNodes * (numNodes - 1)) / 2;
-
+    //int numTotalEdges = (numNodes * (numNodes - 1)) / 2;
+    //int sz = numNodes;//Is this necessary? -- David
     int dis[sz];
     vector<pair<int,int> > a[sz]; //Adjacency list
     int edges = 0;
@@ -62,13 +62,14 @@ int main() //Driver Function for Dijkstra SSSP
     Dijkstra(source,numNodes,a,dis);//SSSP from source (Also passing number of vertices as parameter)
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
     //cout<<"Source is: "<<source<<". The shortest distance to every other vertex from here is: \n";
-    /*
+    
+/*
     for(int i=1;i<=numNodes;i++)//Printing final shortest distances from source
     {
         cout<<"Vertex: "<<i<<" , Distance: ";
         dis[i]!=INF? cout<<dis[i]<<"\n" : cout<<"-1\n";
     }
-    */
+   */
     time_stamp = diff(time1,time2);
     std::cout << numNodes << ", " << edges << ", ";
     std::cout << (long int)((double)(CPG)*(double)(GIG * time_stamp.tv_sec + time_stamp.tv_nsec));
